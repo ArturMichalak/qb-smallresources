@@ -54,13 +54,12 @@ end
 
 local function ResetHandBrake()
     if handbrake <= 0 then return end
-    handbrake = handbrake - 1
+    handbrake -= handbrake
 end
 
 function SeatBeltLoop()
     CreateThread(function()
         while true do
-            sleep = 0
             if seatbeltOn or harnessOn then
                 DisableControlAction(0, 75, true)
                 DisableControlAction(27, 75, true)
@@ -72,7 +71,7 @@ function SeatBeltLoop()
                 break
             end
             if not seatbeltOn and not harnessOn then break end
-            Wait(sleep)
+            Wait(0)
         end
     end)
 end
@@ -89,13 +88,13 @@ exports("HasHarness", HasHarness)
 -- Ejection Logic
 
 RegisterNetEvent('QBCore:Client:EnteredVehicle', function()
-    local playerPed = PlayerPedId()
-    while IsPedInAnyVehicle(playerPed, false) do
+    local ped = PlayerPedId()
+    while IsPedInAnyVehicle(ped, false) do
         Wait(0)
-        local currentVehicle = GetVehiclePedIsIn(playerPed, false)
+        local currentVehicle = GetVehiclePedIsIn(ped, false)
         if currentVehicle and currentVehicle ~= false and currentVehicle ~= 0 then
-            SetPedHelmet(playerPed, false)
-            lastVehicle = GetVehiclePedIsIn(playerPed, false)
+            SetPedHelmet(ped, false)
+            lastVehicle = GetVehiclePedIsIn(ped, false)
             if GetVehicleEngineHealth(currentVehicle) < 0.0 then
                 SetVehicleEngineHealth(currentVehicle, 0.0)
             end
@@ -122,7 +121,7 @@ RegisterNetEvent('QBCore:Client:EnteredVehicle', function()
 
                         if math.random(math.ceil(lastFrameVehiclespeed)) > damageSpeed then
                             if harnessOn then
-                                harnessHp = harnessHp - 1
+                                harnessHp -= 1
                                 TriggerServerEvent('seatbelt:DoHarnessDamage', harnessHp, harnessData)
                             else
                                 EjectFromVehicle()
@@ -201,8 +200,9 @@ RegisterNetEvent('seatbelt:client:UseHarness', function(ItemData) -- On Item Use
     local inveh = IsPedInAnyVehicle(ped, false)
     local class = GetVehicleClass(GetVehiclePedIsUsing(ped))
     if inveh and class ~= 8 and class ~= 13 and class ~= 14 then
+        LocalPlayer.state:set("inv_busy", true, true)
+
         if not harnessOn then
-            LocalPlayer.state:set("inv_busy", true, true)
             QBCore.Functions.Progressbar("harness_equip", Lang:t('seatbelt.use_harness_progress'), 5000, false, true, {
                 disableMovement = false,
                 disableCarMovement = false,
@@ -217,7 +217,6 @@ RegisterNetEvent('seatbelt:client:UseHarness', function(ItemData) -- On Item Use
             harnessData = ItemData
             TriggerEvent('hud:client:UpdateHarness', harnessHp)
         else
-            LocalPlayer.state:set("inv_busy", true, true)
             QBCore.Functions.Progressbar("harness_equip", Lang:t('seatbelt.remove_harness_progress'), 5000, false, true, {
                 disableMovement = false,
                 disableCarMovement = false,
@@ -236,8 +235,9 @@ end)
 -- Register Key
 
 RegisterCommand('toggleseatbelt', function()
-    if not IsPedInAnyVehicle(PlayerPedId(), false) or IsPauseMenuActive() then return end
-    local class = GetVehicleClass(GetVehiclePedIsUsing(PlayerPedId()))
+    local ped = PlayerPedId()
+    if not IsPedInAnyVehicle(ped, false) or IsPauseMenuActive() then return end
+    local class = GetVehicleClass(GetVehiclePedIsUsing(ped))
     if class == 8 or class == 13 or class == 14 then return end
     ToggleSeatbelt()
 end, false)
