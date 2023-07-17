@@ -23,22 +23,6 @@ local veloc
 
 -- Functions
 
-local function EjectFromVehicle()
-    local ped = PlayerPedId()
-    local veh = GetVehiclePedIsIn(ped,false)
-    local coords = GetOffsetFromEntityInWorldCoords(veh, 1.0, 0.0, 1.0)
-    SetEntityCoords(ped, coords.x, coords.y, coords.z)
-    Wait(1)
-    SetPedToRagdoll(ped, 5511, 5511, 0, 0, 0, 0)
-    SetEntityVelocity(ped, veloc.x*4,veloc.y*4,veloc.z*4)
-    local ejectspeed = math.ceil(GetEntitySpeed(ped) * 8)
-    if GetEntityHealth(ped) - ejectspeed > 0 then
-        SetEntityHealth(ped, GetEntityHealth(ped) - ejectspeed)
-    elseif GetEntityHealth(ped) ~= 0 then
-        SetEntityHealth(ped, 0)
-    end
-end
-
 local function ToggleSeatbelt()
     seatbeltOn = not seatbeltOn
     SeatBeltLoop()
@@ -120,12 +104,14 @@ RegisterNetEvent('QBCore:Client:EnteredVehicle', function()
                         ) or accidentSeatbeltOffSpeed
 
                         if math.random(math.ceil(lastFrameVehiclespeed)) > damageSpeed then
+                            local health = GetEntityHealth(ped) - (lastFrameVehiclespeed - damageSpeed) * (seatbeltOn and 4 or 8)
                             if harnessOn then
                                 harnessHp -= 1
                                 TriggerServerEvent('seatbelt:DoHarnessDamage', harnessHp, harnessData)
-                            else
-                                EjectFromVehicle()
+                                health = health / 4
                             end
+
+                            SetEntityHealth(ped, health > 0 and health or 0)
                         end
                     end
                     damagedone = true
